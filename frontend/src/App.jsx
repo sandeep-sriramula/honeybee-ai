@@ -60,7 +60,7 @@ function ChatbotWidget() {
     setMessages((prev) => [...prev, { role: "bot", text: "loading", isTyping: true }]);
 
     try {
-      const res = await fetch("http://localhost:8000/ask", {
+      const res = await fetch("https://honeybee-ai.onrender.com/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: text }),
