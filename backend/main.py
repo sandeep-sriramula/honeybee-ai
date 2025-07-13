@@ -3,11 +3,16 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pandas as pd
+import os
+from dotenv import load_dotenv
 from parser import load_and_clean_csv
 from gpt_agent import query_gpt
 
+# Load environment variables
+load_dotenv()
+
 # Load data once
-CSV_PATH = "simulated_bank_statement.csv"
+CSV_PATH = os.getenv("CSV_PATH", "simulated_bank_statement.csv")
 df = load_and_clean_csv(CSV_PATH)
 
 # FastAPI app setup

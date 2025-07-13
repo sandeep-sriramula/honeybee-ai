@@ -38,7 +38,7 @@ function ChatbotWidget() {
         setIsTyping(false);
         clearInterval(interval);
       }
-    }, 30); // Adjust speed here (lower = faster)
+    }, 15); // Adjust speed here (lower = faster)
   };
 
   const scrollToBottom = () => {
@@ -60,7 +60,7 @@ function ChatbotWidget() {
     setMessages((prev) => [...prev, { role: "bot", text: "loading", isTyping: true }]);
 
     try {
-      const res = await fetch("https://honeybee-ai.onrender.com/ask", {
+      const res = await fetch(import.meta.env.VITE_API_URL || "https://honeybee-ai.onrender.com/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: text }),
@@ -188,8 +188,20 @@ function App() {
     message: '',
   });
   const [contactStatus, setContactStatus] = useState('');
+  
+  // Flipping text state
+  const [currentMessage, setCurrentMessage] = useState(0);
+  const messages = [
+    "Note: This is a demo version and may not include all features.",
+    "Note: This demo is pre-loaded sample dataset from kaggle"
+  ];
 
   useEffect(() => {
+    // Message flipping interval
+    const messageInterval = setInterval(() => {
+      setCurrentMessage(prev => (prev + 1) % messages.length);
+    }, 4000);
+
     // Parallax effect for background elements
     let mouseMoveHandler;
     const bgElements = document.querySelectorAll('.fixed > div');
@@ -229,6 +241,7 @@ function App() {
     }, 300);
     // Cleanup
     return () => {
+      clearInterval(messageInterval);
       observer.disconnect();
       if (mouseMoveHandler) document.removeEventListener('mousemove', mouseMoveHandler);
       clearTimeout(timeoutId);
@@ -240,21 +253,76 @@ function App() {
     setContact((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleContactSubmit = (e) => {
+  const handleContactSubmit = async (e) => {
     e.preventDefault();
+    
     // Simple validation
     if (!contact.name || !contact.email || !contact.subject || !contact.message) {
       setContactStatus('Please fill in all fields.');
       return;
     }
-    // Here you would send the data to your backend or email service
-    // For now, just show a success message
-    setContactStatus('Message sent!');
-    setContact({ name: '', email: '', subject: '', message: '' });
+
+    // Show loading state
+    setContactStatus('Sending message...');
+
+    try {
+      // Google Apps Script Web App URL from environment variables
+      const GOOGLE_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
+      
+      if (!GOOGLE_SCRIPT_URL) {
+        throw new Error('Google Script URL not configured. Please check your environment variables.');
+      }
+      
+      // Use URL with query parameters (GET-style) which Google Apps Script handles reliably
+      const params = new URLSearchParams();
+      params.append('name', contact.name);
+      params.append('email', contact.email);
+      params.append('subject', contact.subject);
+      params.append('message', contact.message);
+
+      const urlWithParams = `${GOOGLE_SCRIPT_URL}?${params.toString()}`;
+
+      console.log('Submitting form data:', {
+        name: contact.name,
+        email: contact.email,
+        subject: contact.subject,
+        message: contact.message
+      });
+
+      const response = await fetch(urlWithParams, {
+        method: 'POST',
+      });
+
+      console.log('Response status:', response.status);
+
+      // Try to parse the response as JSON first
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+        console.log('Parsed result:', result);
+      } catch (parseError) {
+        console.log('Could not parse as JSON, treating as plain text');
+        result = { success: response.ok, message: responseText };
+      }
+
+      // Check if response is ok and successful
+      if (response.ok && (result.success !== false)) {
+        setContactStatus('Message sent successfully! Thank you for contacting me.');
+        setContact({ name: '', email: '', subject: '', message: '' });
+      } else {
+        throw new Error(result.message || 'Network response was not ok');
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setContactStatus(`Error sending message: ${error.message}. Please try again later.`);
+    }
   };
 
   return (
-    <div className="bg-black text-white font-['Space_Grotesk'] overflow-x-hidden">
+    <div className="bg-black text-white font-['Inter'] overflow-x-hidden">
       {/* Background elements */}
       <div className="fixed inset-0 overflow-hidden  pointer-events-none z-0">
         <div className="absolute top-20 left-10 w-96 h-96  bg-indigo-900/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
@@ -265,7 +333,7 @@ function App() {
         <div className="absolute bottom-1/3 right-1/3 w-60 h-60 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }}></div>
         <div className="absolute top-1/2 left-1/2 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5.5s' }}></div>
         {/* Decorative Honeycomb */}
-        <div className="absolute inset-0 opacity-[0.25] pointer-events-none ">
+        <div className="absolute inset-0 opacity-[0.35] pointer-events-none ">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
             <defs>
               {/* <!-- Basic hexagon size --> */}
@@ -305,7 +373,7 @@ function App() {
 
             {/* <!-- Optional animated glow overlay --> */}
             <rect width="100%" height="100%" fill="url(#honeycomb)" opacity="0.5">
-              <animate attributeName="opacity" values="0.1;0.9;0.1" dur="5s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.1;0.9;0.1" dur="4s" repeatCount="indefinite" />
             </rect>
           </svg>
         </div>
@@ -528,6 +596,17 @@ function App() {
               <div className="text-center mb-12">
                 <div className="inline-block mb-3">
                   <div className="text-xs text-cyan-400 tracking-widest uppercase mb-1">Demo</div>
+                  <div className="text-xs text-cyan-400 tracking-widest uppercase mb-1 h-4 overflow-hidden">
+                    <div 
+                      key={currentMessage}
+                      className="animate-[flipIn_0.6s_ease-in-out]"
+                      style={{
+                        animation: 'flipIn 0.6s ease-in-out'
+                      }}
+                    >
+                      {messages[currentMessage]}
+                    </div>
+                  </div>
                   <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Try it now</div>
                 </div>
                 <div className="w-20 h-1 bg-gradient-to-r from-cyan-500 to-indigo-500 mx-auto"></div>

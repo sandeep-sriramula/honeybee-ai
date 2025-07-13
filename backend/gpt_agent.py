@@ -16,6 +16,8 @@ Below is their transaction history:
 
 Now answer this question based on the data:
 \"{question}\"
+
+Important: When displaying monetary amounts, always format them to exactly 2 decimal places (e.g., $123.45, not $123.4567890123).
 """
 
     headers = {
@@ -26,7 +28,7 @@ Now answer this question based on the data:
     }
 
     body = {
-        "model": "openrouter/cypher-alpha:free",
+        "model": "google/gemma-3n-e2b-it:free",
         "messages": [
             {"role": "system", "content": "You are a helpful bank statement analyst."},
             {"role": "user", "content": prompt}
