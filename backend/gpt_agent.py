@@ -28,7 +28,7 @@ Important: When displaying monetary amounts, always format them to exactly 2 dec
     }
 
     body = {
-        "model": "google/gemma-3n-e2b-it:free",
+        "model": "openrouter/cypher-alpha:free",
         "messages": [
             {"role": "system", "content": "You are a helpful bank statement analyst."},
             {"role": "user", "content": prompt}
